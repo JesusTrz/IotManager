@@ -1,10 +1,12 @@
 ﻿using IotManager.Infraestructure;
 using IotManager.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IotManager.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class DeviceController : ControllerBase
@@ -37,6 +39,7 @@ namespace IotManager.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Device device)
         {
+            
             if (device == null)
                 return BadRequest("El Dispositivo no puede contener datos nulos.");
             var newDevice = await _deviceService.AddAsync(device);

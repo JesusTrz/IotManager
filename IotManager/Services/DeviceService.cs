@@ -24,9 +24,18 @@ namespace IotManager.Services
         }
         public async Task<Device> AddAsync(Device device)
         {
-            await _context.Devices.AddAsync(device);
-            await _context.SaveChangesAsync();
-            return device;
+            var existDevice = await _context.Devices.FirstOrDefaultAsync(m=>m.MacAddress == device.MacAddress);
+            if (existDevice == null)
+            {
+                await _context.Devices.AddAsync(device);
+                await _context.SaveChangesAsync();
+                return device;
+            }
+            else
+            {
+                return existDevice;
+            }
+                
         }
         public async Task<Device?> UpdateAsync(Device device)
         {
