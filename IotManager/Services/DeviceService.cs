@@ -60,5 +60,12 @@ namespace IotManager.Services
             await _context.SaveChangesAsync();
             return true;
         }
+
+
+        // Prueba de metodo
+        public async Task<Device?> GetByMacAsync(string mac)
+        {
+            return await _context.Devices.FirstOrDefaultAsync(d => d.MacAddress == mac);
+        }
     }
 }

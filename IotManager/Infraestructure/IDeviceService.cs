@@ -9,5 +9,6 @@ namespace IotManager.Infraestructure
         Task<Device> AddAsync(Device device);
         Task<Device?> UpdateAsync(Device device);
         Task<bool> DeleteAsync(int id);
+        Task<Device?> GetByMacAsync(string mac);
     }
 }

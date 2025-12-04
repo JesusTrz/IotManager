@@ -1,10 +1,20 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using IotManager.Infraestructure;
+using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
 
 namespace IotManager.Hubs
 {
     public class IotHub : Hub
     {
+
+        private readonly IDeviceService _deviceService;
+
+        public IotHub(IDeviceService deviceService)
+        {
+            _deviceService = deviceService;
+        }
+
+
         // Metodo que se ejecuta cuando alguien se conecta a la Mac del Dispositivo Iot
         public override async Task OnConnectedAsync()
         {
@@ -18,8 +28,16 @@ namespace IotManager.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, macAddress);
                 Console.WriteLine($"[HUB] Cliente conectado al grupo: {macAddress}");
             }
+            await CambiarEstadoDispositivo("En Linea");
             await base.OnConnectedAsync();
         }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            await CambiarEstadoDispositivo("Fuera de Linea");
+            await base.OnDisconnectedAsync(exception);
+        }
+
         public async Task ReportarEstado(object datos)
         {
             // Por ahora, solo retransmitimos el mensaje a todos los clientes (ej. al Dashboard en React)
@@ -28,6 +46,28 @@ namespace IotManager.Hubs
 
             // Opcional: Imprimir en la consola del servidor para depurar
             Console.WriteLine($"[HUB] Dato recibido: {datos}");
+        }
+
+        private async Task CambiarEstadoDispositivo(string nuevoStatus)
+        {
+            var httpContext = Context.GetHttpContext();
+            var macAddress = httpContext.Request.Query["macAddress"];
+
+            if(!string.IsNullOrEmpty(macAddress))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, macAddress);
+                var device = await _deviceService.GetByMacAsync(macAddress);
+
+                if(device != null)
+                {
+                    device.Status = nuevoStatus;
+                    await _deviceService.UpdateAsync(device);
+
+                    await Clients.All.SendAsync("CambioEstado", new { id = device.Id, status = nuevoStatus });
+
+                    Console.WriteLine($"[HUB] Dispositivo {macAddress} ahora está: {nuevoStatus}");
+                }
+            }
         }
     }
 }
