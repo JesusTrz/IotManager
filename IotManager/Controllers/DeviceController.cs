@@ -1,24 +1,46 @@
-﻿using IotManager.Infraestructure;
+﻿using IotManager.Hubs;
+using IotManager.Infraestructure;
 using IotManager.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using System.Net.Mail;
 
 namespace IotManager.Controllers
 {
-    [Authorize]
+    //[Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class DeviceController : ControllerBase
     {
         private readonly IDeviceService _deviceService;
         private readonly IDeviceConfigHistoryService _historyService;
+        private readonly IHubContext<IotHub> _hubContext;
 
-        public DeviceController(IDeviceService deviceService, IDeviceConfigHistoryService historyService)
+        public DeviceController(IDeviceService deviceService, IDeviceConfigHistoryService historyService, IHubContext<IotHub> hubContext)
         {
             _deviceService = deviceService;
             _historyService = historyService;
+            _hubContext = hubContext;
         }
+
+        #region Update con Simulador
+        //[AllowAnonymous]
+        [HttpPut("{id}/config")]
+        public async Task<IActionResult> UpdateConfig(int id, [FromBody] object nuevaConfig)
+        {
+            /* Busca si el dispositivo existe antes de hacer el Update */
+            var device = await _deviceService.GetByIdAsync(id);
+            if (device == null) return NotFound();
+
+            await _hubContext.Clients.Group(device.MacAddress).SendAsync("RecibirConfiguracion", nuevaConfig);
+            return Ok(new
+            {
+                mensaje = "Orden Enviada a los dispositivos",
+                config = nuevaConfig
+            });
+        }
+        #endregion
 
         #region Device EndPoints
         [HttpGet]
@@ -70,6 +92,7 @@ namespace IotManager.Controllers
         }
         #endregion
 
+        #region Snapshots
         [HttpPost("{id}/snapshot")]
         public async Task<IActionResult> SaveSnapshot(int id)
         {
@@ -117,6 +140,7 @@ namespace IotManager.Controllers
             await _deviceService.UpdateAsync(device);
 
             return Ok($"Se restauro la configuracion #{snapshotId} para el dispositivo #{deviceId}.");
-        }
+        } 
+        #endregion
     }
 }

@@ -23,6 +23,7 @@ builder.Services.AddScoped<IDeviceConfigHistoryService, DeviceConfigHistoryServi
 
 builder.Services.AddControllers();
 
+builder.Services.AddSignalR(); // Señal
 
 builder.Services.AddIdentityApiEndpoints <ApplicationUser>()
     .AddEntityFrameworkStores<AppDbContext>();
@@ -62,10 +63,11 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", policy =>
     {
        policy
-        .WithOrigins("https://localhost:5173")
-        .AllowAnyOrigin()
+        .WithOrigins("http://localhost:5173", "https://localhost:7291")
+        //.AllowAnyOrigin()
         .AllowAnyMethod()
-        .AllowAnyHeader();
+        .AllowAnyHeader()
+        .AllowCredentials(); // Conexion SignalR
     });
 });
 
@@ -89,5 +91,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapIdentityApi<ApplicationUser>();
+
+app.MapHub<IotManager.Hubs.IotHub>("/iotHub"); // Ruta donde se recibe la señal
 
 app.Run();
