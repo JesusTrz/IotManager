@@ -79,6 +79,16 @@ namespace IotManager.Controllers
             var updateDevice = await _deviceService.UpdateAsync(device);
             if (updateDevice == null)
                 return NotFound("El dispositivo no existe.");
+            try
+            {
+                var configObject = System.Text.Json.JsonSerializer.Deserialize<object>(device.CurrentConfigJson);
+
+                await _hubContext.Clients.Group(device.MacAddress).SendAsync("RecibirConfiguracion", configObject);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al notificar al simulador: {ex.Message}");
+            }
             return Ok(updateDevice);
         }
 
@@ -138,6 +148,17 @@ namespace IotManager.Controllers
             // Restaura la configuración guardada
             device.CurrentConfigJson = targetSnapshot.ConfigSnapshotJson;
             await _deviceService.UpdateAsync(device);
+
+            try
+            {
+                var configObject = System.Text.Json.JsonSerializer.Deserialize<object>(device.CurrentConfigJson);
+
+                await _hubContext.Clients.Group(device.MacAddress).SendAsync("RecibirConfiguracion", configObject);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al notificar al simulador: {ex.Message}");
+            }
 
             return Ok($"Se restauro la configuracion #{snapshotId} para el dispositivo #{deviceId}.");
         } 
